@@ -1,0 +1,2 @@
+#!/bin/bash
+eclipse -e "compile('$1', [output:eco])."

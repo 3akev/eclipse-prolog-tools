@@ -1,0 +1,12 @@
+#!/bin/bash
+
+buf=$(cat)
+linting=$(echo -e "$buf" | eclipse -e "compile(user, [debug:off,warnings:off,load:none])." 2>&1)
+syntax_err=$(grep 'syntax' <<<"$linting")
+exit_code=$?
+
+if [ -n "$syntax_err" ]; then
+	echo "$syntax_err" | sed "s/^pipe user, //"
+fi
+
+exit $((exit_code == 0))

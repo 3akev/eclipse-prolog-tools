@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# get formatter script
+if [ -L "$0" ]; then
+	DIR=$(dirname "$(readlink -f "$0")")
+else
+	DIR=$(dirname "$0")
+fi
+formatter="${DIR}/eclipsefmt.ecl"
+
+buf=$(cat)
+tmpfile=$(mktemp -t eclipsefmt.XXXXXX)
+newbuf=$(echo -e "${buf}\nend_of_file.${buf}" | eclipse -e "compile(user, [debug:off,warnings:off,load:none]), use_module('${formatter}'), pretty_print." 2>"$tmpfile" | sed 's/\b_[0-9]\+\b/_/g')
+
+if grep 'syntax' <"$tmpfile" >/dev/null; then
+	echo -e "$buf"
+else
+	echo -e "$newbuf"
+fi
+
+rm "$tmpfile"
+
+# slower version: (runs eclipse twice)
+
+# if ! eclipselint <<<"$buf" >/dev/null; then
+# 	echo -e "$buf"
+# else
+# 	echo -e "$buf" | eclipse -e "use_module('${formatter}'), pretty_print." | sed 's/\b_[0-9]\+\b/_/g'
+# fi

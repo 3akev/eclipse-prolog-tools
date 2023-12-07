@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+import subprocess
+
+
+def run_goal(file, goals):
+    exitcode = 0
+    for line in goals:
+        if line.count(".") != 1:
+            print(line.strip() + " is badly formatted", file=sys.stdout)
+            exitcode |= 1
+            continue
+        line = line.replace("?- ", "")
+
+        process = subprocess.run(
+            ["eclipse", "-e", f"['{file}'], {line}"], capture_output=True
+        )
+
+        msg = line.strip().replace("\n", "")
+        if process.returncode == 0:
+            msg += " succeeded"
+        else:
+            msg += " failed"
+        print(msg, file=sys.stdout)
+
+        exitcode |= process.returncode
+
+    return exitcode
+
+
+def chomp_till_prompt(ls):
+    start = 0
+    for i, line in enumerate(ls):
+        if line.startswith("[eclipse"):
+            start = i + 1
+            break
+
+    return ls[start:]
+
+
+def chomp_after_prompt(ls):
+    end = len(ls)
+    for i, line in enumerate(ls):
+        if line.startswith("[eclipse"):
+            end = i
+            break
+
+    return ls[:end]
+
+
+def run_goal_all(file, goals):
+    line = "".join(x.replace("\n", "") for x in goals)
+    line = line.replace("?- ", "")
+
+    str_cmd = f"['{file}']. {line}\n"
+    str_cmd += ";" * 100
+    str_cmd += "\n\n"
+
+    process = subprocess.run(
+        "eclipse", input=str_cmd, shell=True, text=True, capture_output=True
+    )
+    res = process.stdout
+    ls = res.split("\n")
+
+    # chomp license stuff before loading file
+    ls = chomp_till_prompt(ls)
+    # chomp output from loading file
+    ls = chomp_till_prompt(ls)
+    # chomp output after running goal
+    ls = chomp_after_prompt(ls)
+
+    for line in ls:
+        print(line, file=sys.stdout)
+    return process.returncode
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Run goals in Eclipse.")
+    parser.add_argument(
+        "--all", "-a", action="store_true", help="Get all possible results for the goal"
+    )
+    parser.add_argument("--file", "-f", required=True, help="File to load")
+    parser.add_argument("goals", nargs="+", help="Goal to run")
+
+    args = parser.parse_args()
+
+    exitcode = 0
+    match args.all:
+        case True:
+            if len(args.goals) > 1:
+                print("Only one goal can be run at a time with -a", file=sys.stderr)
+                sys.exit(1)
+            exitcode = run_goal_all(args.file, args.goals)
+        case False:
+            exitcode = run_goal(args.file, args.goals)
+
+    # propagate exit code
+    sys.exit(exitcode)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+export RLWRAP_HOME="$HOME/insa/s5/prolog/eclipseclp"
+mkdir -p "$RLWRAP_HOME"
+touch "$RLWRAP_HOME/eclipse_history"
+
+options=(
+	"--no-warnings"        # silence warnings when ex. enumerating all results
+	"--complete-filenames" #
+	"--prompt-colour"
+	"--break-chars" "(){}[],'+-=&^%\$#@\";|\\./:<>?~\`\*!"
+	"--extra-char-after-completion" ""
+	"--history-no-dupes" "2"
+	# "--file" "."           # completion from history
+)
+
+# !@#$%^&*()_+-={}[]|;:.></?\|~`
+remove_comments() {
+	sed 's/\%.*$//g' <"$1" | tr '\n' '\r' | sed 's/\/\*.*\*\///g' | tr '\r' '\n'
+}
+
+completions_file=$(mktemp '/tmp/eclipse_completionsXXXXXXXXXX')
+
+curr_dir="$(pwd)"
+prolog_files=("${curr_dir}"/*.pl "${curr_dir}"/*.ecl)
+for file in "${prolog_files[@]}"; do
+	if [ -f "$file" ]; then
+		remove_comments "$file" >>"$completions_file"
+	fi
+done
+
+options+=("--file" "$completions_file")
+
+rlwrap "${options[@]}" "$HOME/programs/eclipse_prolog/bin/x86_64_linux/eclipse" "$@"
+exit_code=$?
+
+rm -f "$completions_file" &>/dev/null
+
+exit $exit_code
