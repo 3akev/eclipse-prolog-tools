@@ -32,26 +32,6 @@ def lint_stdin():
     return process.returncode
 
 
-def chomp_till_prompt(ls):
-    start = 0
-    for i, line in enumerate(ls):
-        if line.startswith("[eclipse"):
-            start = i + 1
-            break
-
-    return ls[start:]
-
-
-def chomp_after_prompt(ls):
-    end = len(ls)
-    for i, line in enumerate(ls):
-        if line.startswith("[eclipse"):
-            end = i
-            break
-
-    return ls[:end]
-
-
 def main():
     lint_stdin()
 
