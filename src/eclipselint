@@ -1,12 +1,60 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-buf=$(cat)
-linting=$(echo -e "$buf" | eclipse -e "compile(user, [debug:off,warnings:off,load:none])." 2>&1)
-syntax_err=$(grep 'syntax' <<<"$linting")
-exit_code=$?
+import re
+import sys
+import subprocess
 
-if [ -n "$syntax_err" ]; then
-	echo "$syntax_err" | sed "s/^pipe user, //"
-fi
 
-exit $((exit_code == 0))
+def lint_stdin():
+    buf = sys.stdin.read()
+    process = subprocess.run(
+        ["eclipse", "-e", "compile(user, [debug:off,warnings:off,load:none])."],
+        capture_output=True,
+        text=True,
+        input=buf,
+    )
+
+    linting = process.stderr
+
+    i = 0
+    lines = []
+    for line in linting.splitlines():
+        if i % 3 == 0:
+            lines.append(line.replace("pipe user, ", ""))
+        elif i % 3 == 2:
+            col = line.find("^")
+            lines[-1] = re.sub(r"line (\d+):", r"line \g<1>," + f"{col}:", lines[-1])
+
+        i += 1
+
+    print("\n".join(lines), file=sys.stderr)
+
+    return process.returncode
+
+
+def chomp_till_prompt(ls):
+    start = 0
+    for i, line in enumerate(ls):
+        if line.startswith("[eclipse"):
+            start = i + 1
+            break
+
+    return ls[start:]
+
+
+def chomp_after_prompt(ls):
+    end = len(ls)
+    for i, line in enumerate(ls):
+        if line.startswith("[eclipse"):
+            end = i
+            break
+
+    return ls[:end]
+
+
+def main():
+    lint_stdin()
+
+
+if __name__ == "__main__":
+    main()

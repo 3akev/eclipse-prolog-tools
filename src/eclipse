@@ -1,6 +1,8 @@
 #!/bin/bash
 
-export RLWRAP_HOME="$HOME/insa/s5/prolog/eclipseclp"
+ECLIPSEPATH=${ECLIPSEPATH:-"$HOME/programs/eclipse_prolog/bin/x86_64_linux"}
+
+export RLWRAP_HOME="$HOME/.eclipseclp"
 mkdir -p "$RLWRAP_HOME"
 touch "$RLWRAP_HOME/eclipse_history"
 
@@ -14,7 +16,6 @@ options=(
 	# "--file" "."           # completion from history
 )
 
-# !@#$%^&*()_+-={}[]|;:.></?\|~`
 remove_comments() {
 	sed 's/\%.*$//g' <"$1" | tr '\n' '\r' | sed 's/\/\*.*\*\///g' | tr '\r' '\n'
 }
@@ -31,7 +32,7 @@ done
 
 options+=("--file" "$completions_file")
 
-rlwrap "${options[@]}" "$HOME/programs/eclipse_prolog/bin/x86_64_linux/eclipse" "$@"
+rlwrap "${options[@]}" "$ECLIPSEPATH/eclipse" "$@"
 exit_code=$?
 
 rm -f "$completions_file" &>/dev/null

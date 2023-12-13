@@ -10,12 +10,13 @@ formatter="${DIR}/eclipsefmt.ecl"
 
 buf=$(cat)
 tmpfile=$(mktemp -t eclipsefmt.XXXXXX)
-newbuf=$(echo -e "${buf}\nend_of_file.${buf}" | eclipse -e "compile(user, [debug:off,warnings:off,load:none]), use_module('${formatter}'), pretty_print." 2>"$tmpfile" | sed 's/\b_[0-9]\+\b/_/g')
+newbuf=$(echo -e "${buf}\nend_of_file.${buf}" | eclipse -e "compile(user, [debug:off,warnings:off,load:none]), use_module('${formatter}'), pretty_print." 2>"$tmpfile")
+exit_code=$?
 
-if grep 'syntax' <"$tmpfile" >/dev/null; then
+if [ $exit_code -ne 0 ] || grep 'syntax' <"$tmpfile" >/dev/null; then
 	echo -e "$buf"
 else
-	echo -e "$newbuf"
+	echo -e "$newbuf" | sed 's/\b_[0-9]\+\b/_/g'
 fi
 
 rm "$tmpfile"
